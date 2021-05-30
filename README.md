@@ -27,9 +27,8 @@ Usage
 
 Requirement
 -----------------
-
-Download and install JIRA wrap API:
-- https://github.com/pycontribs/jira
+Please run setup_env.sh script to install working environment to this app
+    ./setup_env.sh
 
 Build & Install
 -----------------
@@ -43,6 +42,11 @@ Document
 	https://pyoutlook.readthedocs.io/en/latest/
 - Tkinter:
 	https://docs.python.org/3/library/tkinter.html
+- Pylint:
+    + Read coding rule:
+        http://pylint-messages.wikidot.com/
+    + How to use pylint:
+        http://pylint.pycqa.org/en/latest/
 - Utilites:
 	https://docs.python.org/3/library/json.html
 	https://pypi.org/project/python-oauth2/
