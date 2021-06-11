@@ -3,6 +3,7 @@ import json
 from jira import JIRA
 import dzsi
 
+
 class WrapJira(JIRA):
 
     def __init__(self, url, username, password):
@@ -16,25 +17,25 @@ class WrapJira(JIRA):
     def search_issue_by_milestone(self, milestone):
         return
 
-    def set_issue_status(self, issue=None, new_status=None):
+    def set_issue_status(self, issuekey=None, new_status=None):
         return
 
-    def get_issue_status(self, issue=None):
+    def get_issue_status(self, issuekey=None):
         return
 
-    def set_issue_assignee(self, issue=None, new_assignee=None):
+    def set_issue_assignee(self, issuekey=None, new_assignee=None):
         return
 
-    def get_issue_assignee(self, issue=None):
+    def get_issue_assignee(self, issuekey=None):
         return
 
-    def set_issue_remainingestimate(self, issue=None, new_remainingestimate=None):
+    def set_issue_remainingestimate(self, issuekey=None, new_remainingestimate=None):
         return
 
-    def get_issue_remainingestimate(self, issue=None):
+    def get_issue_remainingestimate(self, issuekey=None):
         return
 
-    def set_issue_customfield(self, issue=None, custom_field=None, new_customefield_value=None):
+    def set_issue_customfield(self, issuekey=None, custom_field=None, new_customefield_value=None):
         return
 
     def set_milestone_attribute(self, milestone_id=None, attr_name=None, new_attrvalue=None):
@@ -43,24 +44,83 @@ class WrapJira(JIRA):
     def get_milestone_attribute(self, milestone_id=None, attr_name=None):
         return
 
-    def create_issue(self, issue_dict=None):
+    def create_issue(self, project='NOSVG', issuetype='Bug', summary=None, description=None,
+                     priority='Major', assignee=None, components=None, fixVersions=None,
+                     outwardIssue=None, type='Blocks'):
+        issue_dict = {}
+
+        issue_dict['project'] = {'key': project}
+        issue_dict['issuetype'] = {'name': issuetype}
+
+        if summary is None:
+            return
+        else:
+            issue_dict['summary'] = summary
+
+        if description is not None:
+            issue_dict['description'] = description
+        else:
+            issue_dict['description'] = 'h1.Symptom/Requirement\\\\ \nh1.Rootcause\\\\\
+                                            \nh1.Solution\\\\ \nh1.Selftest'
+
+        issue_dict['priority'] = {"name": priority}
+
+        if assignee is None:
+            issue_dict['assignee'] = {
+                "name": self.__username
+            }
+        else:
+            issue_dict['assignee'] = {
+                "name": assignee
+            }
+
+        issue_dict['components'] = [
+            {'name': components}
+        ]
+
+        if fixVersions is None:
+            return
+        else:
+            issue_dict['fixVersions'] = [
+                {'name': fixVersions}
+            ]
+        issue = JIRA.create_issue(self, fields=issue_dict)
+        if outwardIssue is not None:
+            JIRA.create_issue_link(self, type=type, inwardIssue=issue.key,\
+                                    outwardIssue=outwardIssue, comment=None)
         return
 
     def delete_issue(self, issue=None):
         return
 
-    def clone_issue(self, issue=None):
+    def clone_issue(self, issuekey=None, auto_link_issue=True, fixVersions=None,
+                    components=None):
+
+        if issuekey is not None:
+            issue = JIRA.issue(self, issuekey)
+        else:
+            return
+
+        if auto_link_issue == True:
+            clone_issue = self.create_issue(summary=issue.fields.summary,\
+                                            description=issue.fields.description,\
+                                            outwardIssue=issue.key, components=components,
+                                            fixVersions=fixVersions)
+        else:
+            clone_issue = self.create_issue(summary=issue.fields.summary,\
+                                            description=issue.fields.description,\
+                                            components=components, fixVersions=fixVersions)
         return
 
-    def add_worklog(self, issue=None, time_spent=None, adjust_estimate=True,
+    def add_worklog(self, issuekey=None, time_spent=None, adjust_estimate=True,
                     new_estimate=None, reduce_by=None, started=None, project_id=None,
                     site=None, domain_id=None, night_overtime=False, wbs=None):
         data = {}
 
         data['user'] = self.__username
 
-        if issue is not None:
-            data['issueKey'] = issue
+        if issuekey is not None:
+            data['issueKey'] = issuekey
 
         if adjust_estimate is not None:
             data['autoAdjustRemaining'] = adjust_estimate
@@ -73,27 +133,27 @@ class WrapJira(JIRA):
             "technicalDomain": True,
             "haschildren": False,
             "title": wbs,
-            "type":''
+            "type": ''
         }
-
-        data['projectSites'] = [{
-            "project": 'PJT:2062',
-            "site":'CHT'
-        }]
+        data['projectSites'] = [
+            {
+                "project": 'PJT:2062',
+                "site": 'CHT'
+            }
+        ]
 
         now = datetime.now()
         data['started'] = now.strftime("%Y-%m-%dT 9:00")
 
         data['technologyDomain'] = {
-            "id":"3",
-            "name":"GPON"
+            "id": "3",
+            "name": "GPON"
         }
 
         if time_spent is not None:
             data['timeSpent'] = time_spent
             data['timeSpentSecond'] = int(time_spent)*3600
 
-        print(json.dumps(data, indent=4))
         url = dzsi.LOGWORK_URL
-        r = self._session.post(url, data=json.dumps(data)) #pylint
+        r = self._session.post(url, data=json.dumps(data))
         return
