@@ -15,7 +15,7 @@ Table of Contents
 Introduction
 -----------------
 
-This software was created for the purpose of increasing working performance, re-ducing daily repetitive tasks and improving personal skills.
+This software was created for the purpose of increasing working performance, reducing daily repetitive tasks and improving personal skills.
 
 In terms of ideas, this working tool chain will support user to interact with 
 JIRA, Outlook in form of smallest functions.
