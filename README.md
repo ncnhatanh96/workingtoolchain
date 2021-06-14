@@ -15,7 +15,7 @@ Table of Contents
 Introduction
 -----------------
 
-This software was created for the purpose of increasing working performance,re-
+This software was created for the purpose of increasing working performance, re-
 ducing daily repetitive tasks and improving personal skills.
 
 In terms of ideas, this working tool chain will support user to interact with 
