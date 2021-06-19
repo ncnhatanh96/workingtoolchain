@@ -22,7 +22,7 @@ class WrapJira(JIRA):
         issue = self.issue(issuekey)
         if new_status == str(issue.fields.status):
             return
-        for transition in self.__Dzsi.get_transitionId_flow cur_status=str(issue.fields.status),\
+        for transition in self.__Dzsi.get_transitionId_flow(cur_status=str(issue.fields.status),\
                                     new_status=new_status)[1::]:
             self.transition_issue(issue, transition)
         return
