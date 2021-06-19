@@ -14,6 +14,7 @@ class WrapJira(JIRA):
         self.__user_issuelist      = {}
         self.__milestone_issuelist = {}
         self.__milestone_list      = {}
+        self.__Dzsi = dzsi.Dzsi()
 
         #Update milestone list following TEAM
         r = self._session.get(dzsi.MILESTONE_BIZGW_URL)
@@ -45,27 +46,44 @@ class WrapJira(JIRA):
         return
 
     def set_issue_status(self, issuekey=None, new_status=None):
+        issue = self.issue(issuekey)
+        if new_status == str(issue.fields.status):
+            return
+        for transition in self.__Dzsi.get_transitionId_flow cur_status=str(issue.fields.status),\
+                                    new_status=new_status)[1::]:
+            self.transition_issue(issue, transition)
         return
 
     def get_issue_status(self, issuekey=None):
-        return
+        issue = self.issue(issuekey)
+        return issue.fields.status
 
     def set_issue_assignee(self, issuekey=None, new_assignee=None):
+        issue = self.issue(issuekey)
+        self.assign_issue(issue, new_assignee)
         return
 
     def get_issue_assignee(self, issuekey=None):
-        return
+        issue = self.issue(issuekey)
+        return issue.fields.assignee
 
     def set_issue_remainingestimate(self, issuekey=None, new_remainingestimate=None):
+        issue = self.issue(issuekey)
+        if new_remainingestimate is None:
+            return
+        issue.update(fields={'timetracking': {'remainingEstimate': new_remainingestimate}})
         return
 
     def get_issue_remainingestimate(self, issuekey=None):
+        issue = self.issue(issuekey)
+        return issue.fields.timetracking.remainingEstimate
+
+    def set_issue_customfield(self, issuekey=None, custom_field=None,\
+                                new_customefield_value=None):
         return
 
-    def set_issue_customfield(self, issuekey=None, custom_field=None, new_customefield_value=None):
-        return
-
-    def set_milestone_attribute(self, milestone_id=None, attr_name=None, new_attrvalue=None):
+    def set_milestone_attribute(self, issuekey=None, milestone_id=None, \
+                                    attr_name=None, new_attrvalue=None):
         return
 
     def get_milestone_attribute(self, milestone_id=None, attr_name=None):
@@ -111,9 +129,10 @@ class WrapJira(JIRA):
             issue_dict['fixVersions'] = [
                 {'name': fixVersions}
             ]
-        issue = JIRA.create_issue(self, fields=issue_dict)
+        issue_dict["customfield_10842"] = 1834
+        issue = self.create_issue(self, fields=issue_dict)
         if outwardIssue is not None:
-            JIRA.create_issue_link(self, type=type, inwardIssue=issue.key,\
+            self.create_issue_link(self, type=type, inwardIssue=issue.key,\
                                     outwardIssue=outwardIssue, comment=None)
         return
 
@@ -124,7 +143,7 @@ class WrapJira(JIRA):
                     components=None):
 
         if issuekey is not None:
-            issue = JIRA.issue(self, issuekey)
+            issue = self.issue(issuekey)
         else:
             return
 
