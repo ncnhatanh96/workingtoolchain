@@ -6,16 +6,43 @@ import dzsi
 
 class WrapJira(JIRA):
 
-    def __init__(self, url, username, password):
+    def __init__(self, url, username, password, team=None):
         JIRA.__init__(self, server=url, basic_auth=(username, password))
         self.__username = username
         self.__password = password
+        self.__team     = team
+        self.__user_issuelist      = {}
+        self.__milestone_issuelist = {}
+        self.__milestone_list      = {}
         self.__Dzsi = dzsi.Dzsi()
 
-    def search_issue_by_username(self, username):
+        #Update milestone list following TEAM
+        r = self._session.get(dzsi.MILESTONE_BIZGW_URL)
+        if team == 'BIZGW':
+            r = self._session.get(dzsi.MILESTONE_BIZGW_URL)
+        elif team == 'NETWORK':
+            r = self._session.get(dzsi.MILESTONE_NETWORK_URL)
+        elif team == 'PLATFORM':
+            r = self._session.get(dzsi.MILESTONE_PLATFORM_URL)
+        elif team is None:
+            return
+
+        for milestone in r.json()["results"]:
+            self.__milestone_list[milestone["id"]] = milestone["name"]
+
+    def search_issue_by_username(self, username, maxResults=5):
+
+        for issue in self.search_issues('project=NOSVG and assignee={}'.format(username), maxResults=maxResults):
+            print('{}: {}'.format(issue.key, issue.fields.summary))
+            self.__user_issuelist[issue.key] = issue.fields.summary
+
         return
 
     def search_issue_by_milestone(self, milestone):
+
+        for issue in self.search_issues('project=NOSVG and milestone={}'.format(milestone)):
+            print('{}: {}'.format(issue.key, issue.fields.summary))
+
         return
 
     def set_issue_status(self, issuekey=None, new_status=None):
@@ -176,3 +203,9 @@ class WrapJira(JIRA):
         url = dzsi.LOGWORK_URL
         r = self._session.post(url, data=json.dumps(data))
         return
+
+test = WrapJira(dzsi.WITS_HTTP, username="nhatanh.nguyen", password="taodeobiet", \
+                team='Network')
+#test.search_issue_by_username(username="nhatanh.nguyen")
+#test.search_issue_by_milestone(milestone='1834')
+test.set_issue_status(issuekey='NOSVG-19927')
