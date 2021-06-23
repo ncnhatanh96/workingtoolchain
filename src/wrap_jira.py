@@ -7,12 +7,13 @@ import dzsi
 class WrapJira(JIRA):
 
     def __init__(self, url, username, password, team=None):
+        url = dzsi.WITS_HTTP
         JIRA.__init__(self, server=url, basic_auth=(username, password))
         self.__username = username
         self.__password = password
         self.__team     = team
-        self.__user_issuelist      = {}
-        self.__milestone_issuelist = {}
+        self.__user_issuelist      = []
+        self.__milestone_issuelist = []
         self.__milestone_list      = {}
         self.__Dzsi = dzsi.Dzsi()
 
@@ -30,28 +31,79 @@ class WrapJira(JIRA):
         for milestone in r.json()["results"]:
             self.__milestone_list[milestone["id"]] = milestone["name"]
 
-    def search_issue_by_username(self, username, maxResults=5):
+    def get_milestone_list(self):
+        return self.__milestone_list
 
+    def set_milestone_list(self):
+        return
+
+    def get_issuelink(self, issuelinks=None):
+        data = {}
+        outwardIssueKey = None
+        index = 1
+        if issuelinks is None:
+            print('WrapJira: Invalid parameter')
+            return
+        for link in issuelinks:
+            if 'Cloned' == str(link.type.name):
+                continue
+            if hasattr(link, 'outwardIssue'):
+                outwardIssue = link.outwardIssue
+                if outwardIssueKey != outwardIssue.key:
+                #This is hard code, if issue link is PA then we will return
+                #Because sometimes, we clone from another issue
+                    if 'NOSVG' not in outwardIssue.key:
+                        outwardIssueKey = outwardIssue.key
+                        data.update({index: outwardIssue.key})
+                        index+=1
+                else:
+                    return None
+            else:
+                return None
+                print('WrapJira: Cannot find issue link')
+        print(data)
+        return data
+
+    def set_issuelink(self, id, issuekey=None):
+        return
+
+    def get_issuelist_by_username(self, username, maxResults=5):
+        data = []
         for issue in self.search_issues('project=NOSVG and assignee={}'.format(username), maxResults=maxResults):
-            print('{}: {}'.format(issue.key, issue.fields.summary))
-            self.__user_issuelist[issue.key] = issue.fields.summary
+            #print('{}: {} {}\n'.format(issue.key, issue.fields.summary, issue.fields.assignee))
+            issue_dict = {
+                'IssueKey': issue.key,
+                'Summary': issue.fields.summary,
+                'Assignee': str(issue.fields.assignee),
+                'Status': str(issue.fields.status),
+                'IssueLinks': issue.fields.issuelinks
+            }
+            data.append(issue_dict)
+        return data
 
-        return
-
-    def search_issue_by_milestone(self, milestone):
-
+    def get_issuelist_by_milestone(self, milestone):
+        data = []
         for issue in self.search_issues('project=NOSVG and milestone={}'.format(milestone)):
-            print('{}: {}'.format(issue.key, issue.fields.summary))
+            #print('{}: {} {}\n'.format(issue.key, issue.fields.summary, issue.fields.assignee))
+            issue_dict = {
+                'IssueKey': issue.key,
+                'Summary': issue.fields.summary,
+                'Assignee': str(issue.fields.assignee),
+                'Status': str(issue.fields.status),
+                'IssueLinks': issue.fields.issuelinks
+            }
+            data.append(issue_dict)
+        #print('milestone {} data {}'.format(milestone, data))
+        return data
 
-        return
-
-    def set_issue_status(self, issuekey=None, new_status=None):
+    def set_issue_status(self, issuekey=None, new_status=None, isBMS=False):
         issue = self.issue(issuekey)
         if new_status == str(issue.fields.status):
             return
         for transition in self.__Dzsi.get_transitionId_flow(cur_status=str(issue.fields.status),\
-                                    new_status=new_status)[1::]:
-            self.transition_issue(issue, transition)
+                                        new_status=new_status)[1::]:
+                self.transition_issue(issue, transition)
+                print(transition)
         return
 
     def get_issue_status(self, issuekey=None):
@@ -78,6 +130,9 @@ class WrapJira(JIRA):
         issue = self.issue(issuekey)
         return issue.fields.timetracking.remainingEstimate
 
+    def get_issue_customerfield(self, issyekey=None, custom_field=None):
+        return
+
     def set_issue_customfield(self, issuekey=None, custom_field=None,\
                                 new_customefield_value=None):
         return
@@ -91,7 +146,7 @@ class WrapJira(JIRA):
 
     def create_issue(self, project='NOSVG', issuetype='Bug', summary=None, description=None,
                      priority='Major', assignee=None, components=None, fixVersions=None,
-                     outwardIssue=None, type='Blocks'):
+                     outwardIssue=None, type='Blocks', milestone=None):
         issue_dict = {}
 
         issue_dict['project'] = {'key': project}
@@ -129,8 +184,12 @@ class WrapJira(JIRA):
             issue_dict['fixVersions'] = [
                 {'name': fixVersions}
             ]
-        issue_dict["customfield_10842"] = 1834
+
+        if milestone is not None:
+            issue_dict["customfield_10842"] = milestone
+
         issue = self.create_issue(self, fields=issue_dict)
+
         if outwardIssue is not None:
             self.create_issue_link(self, type=type, inwardIssue=issue.key,\
                                     outwardIssue=outwardIssue, comment=None)
@@ -203,9 +262,3 @@ class WrapJira(JIRA):
         url = dzsi.LOGWORK_URL
         r = self._session.post(url, data=json.dumps(data))
         return
-
-test = WrapJira(dzsi.WITS_HTTP, username="nhatanh.nguyen", password="taodeobiet", \
-                team='Network')
-#test.search_issue_by_username(username="nhatanh.nguyen")
-#test.search_issue_by_milestone(milestone='1834')
-test.set_issue_status(issuekey='NOSVG-19927')
